@@ -47,9 +47,7 @@ class BlockChain:
  
   # Aqui dados serão adicionados ao Bloco
  def newData(self, transmisor, receptor, quantity):
-  
   self.current_data.append({'transmisor': transmisor, 'receptor': receptor, 'quantity': quantity})
-
   return True
 
  def latestBlock(self):

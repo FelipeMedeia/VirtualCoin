@@ -14,8 +14,8 @@ class Block:
 
  # Função para calcular o hash de cada novo bloco
  def calcHash(self):
-  block_data = f"{self.beforeHash}{self.data}{self.timestamp}"
+  block_data = f"{self.index}{self.beforeHash}{self.data}{self.timestamp}"
   return hashlib.sha256(block_data.encode()).hexdigest()
  
  def __str__(self):
-  return "Index-{}\nHASH-{}\nPREVIOUS HASH-{}\nDATA-{}\nTIME-{}\n".format(self.index, self.hash, self.beforeHash, self.data, self.timestamp)
+  return f"Index-{self.index}\nHASH-{self.hash}\nPREVIOUS HASH-{self.beforeHash}\nDATA-{self.data}\nTIME-{self.timestamp}\n"
