@@ -48,20 +48,22 @@ Para os blocos temos os seguintes atributos:
   self.beforeHash = beforeHash
   self.data = data
   self.timestamp = timestamp or time.time()
+  self.nonce = 0
+  self.difficulty = difficulty
 ```
 A função hash irá pegar o valor do index, o hash_anterior(beforeHash), os dados(data) referentes as transações e o tempo(timestamp), assim usando a *haslib* irá gerar um hash pra cada bloco:
 
 ```
  def calcHash(self):
-  block_data = f"{self.index}{self.beforeHash}{self.data}{self.timestamp}"
-  return hashlib.sha256(block_data.encode()).hexdigest() 
+  block_data = f"{self.index}{self.beforeHash}{self.data}{self.timestamp}{self.nonce}"
+  return hashlib.sha256(block_data.encode('utf-8')).hexdigest() 
 ```
 Essa última apenas está transformando em String:
 
 ```
- def calcHash(self):
-   def __str__(self):
-  return "Index-{}\nHASH-{}\nPREVIOUS HASH-{}\nDATA-{}\nTIME-{}\n".format(self.index, self.hash, self.beforeHash, self.data, self.timestamp)
+ def __str__(self):
+  return f"Index-{self.index}\nHASH-{self.hash}\nPREVIOUS HASH-{self.beforeHash}\nDATA-{self.data}\nTIME-{self.timestamp}\nNONCE-{self.nonce}"
+
 ```
 
 E a classe Bockchain para a montagem da Blockchain simples.
