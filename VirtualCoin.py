@@ -13,37 +13,39 @@ if __name__ == "__main__":
 
     lastBlock = blockchain.latestBlock()
 
-    blockchain.newData(transmisor="0", receptor="The King", quantity=1)
-    blockchain.newData(transmisor="1", receptor="The Queen", quantity=2)
-    blockchain.newData(transmisor="2", receptor="The Magic", quantity=1)
+    blockchain.newData(transmissor="00Userfs000", receptor="00Kingsd00000", quantity=15)
+    blockchain.newData(transmissor="00Userkf1000", receptor="00Queenjf00000", quantity=20)
+    blockchain.newData(transmissor="00User2000", receptor="00Magic00000", quantity=11)
 
     lastHash = lastBlock.calcHash()
     block = blockchain.constructBlock(lastHash, blockchain.current_data)
 
-    
+    #Bloco com erro nos endereços
     lastBlock = blockchain.latestBlock()
 
-    blockchain.newData(transmisor="3", receptor="The King", quantity=2)
-    blockchain.newData(transmisor="4", receptor="The Queen", quantity=3)
-    blockchain.newData(transmisor="5", receptor="The Magic", quantity=2)
+    blockchain.newData(transmissor="0User000", receptor="00King00000", quantity=10)
+    blockchain.newData(transmissor="00User1000", receptor="0Queen00000", quantity=25)
+    blockchain.newData(transmissor="00Magic00000", receptor="00User2000", quantity=13)
 
     lastHash = lastBlock.calcHash()
     block = blockchain.constructBlock(lastHash, blockchain.current_data)
-
-    lastBlock = blockchain.latestBlock()
-
-    blockchain.newData(transmisor="6", receptor="The King", quantity=1)
-    blockchain.newData(transmisor="7", receptor="The Queen", quantity=2)
-    blockchain.newData(transmisor="8", receptor="The Magic", quantity=1)
-
-    lastHash = lastBlock.calcHash()
-    block = blockchain.constructBlock(lastHash, blockchain.current_data)
-
 
     for block in blockchain.chain:
-     print(block)
+     print(block,'\n')
 
-    print("##----------------Terminando teste com DigCoin------------------##")
+
+
+    # Modifique o endereço para ter novas analises
+    user = "00User2000"
+    transactions = blockchain.searchDataUser(user)
+
+
+    # Exibindo as transações encontradas
+    print(f"\nTransações encontradas para o usuário {user}:")
+    for address in transactions:
+        print(f"Transmissor: {address['transmissor']}, Receptor: {address['receptor']}, Quantidade: {address['quantity']}")
+
+    print("\n##----------------Terminando teste com DigCoin------------------##")
     print("##--------------------------------------------------------------##")
     print("")
     print("")

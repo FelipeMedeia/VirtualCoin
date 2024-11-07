@@ -133,19 +133,25 @@ Para a construção dos blocos, o genesis é o primeiro bloco da cadeia e usando
     return block
 
     def validityBlockChain(self, block):
-      for i in range(1, len(self.chain)):
+      for i in range(0, len(self.chain)):
         if block.beforeHash != self.latestBlock().hash:
           return False
+        if block.hash != block.calcHash():
+          return False
         if self.latestBlock().calcHash() != self.latestBlock().hash:
+          print(f"Erro de hash no bloco {i}")
           return False
         if block.timestamp < self.latestBlock().timestamp:
           return False
-      
-      return True
+        if not block.data:
+          return False
+
+
+  return True
 
 ```
 
-A função newdata vai adicionar os dados da transação no bloco, recebendo quem maandou, quem vai receber e a quantidade. A função latestBlock vai pegar o último bloca da corrente e a makeBlock vai receber os dados para montar o bloco, passando todos os parametros finais.
+A função newdata vai adicionar os dados da transação no bloco, recebendo quem maandou, quem vai receber e a quantidade. A função latestBlock vai pegar o último bloco da corrente e a makeBlock vai receber os dados para montar o bloco, passando todos os parametros finais.
 
 ```
 def newData(self, transmisor, receptor, quantity):
@@ -163,4 +169,42 @@ def newData(self, transmisor, receptor, quantity):
                 blockData.data['data'],
                 blockData.timestamp['timestamp'])
 
+```
+
+## Novas modificações
+
+Para essa nova implementação foi planejado acrescentar um sistema de mineração de blocos semelhante ao PoW, com isso foi adicionado o NONCE e a dificuldade. Também foi alterado a criação do hash, passando o nonce como um atributo.
+
+```
+def miner_block(self):
+    while not self.hash.startswith('0' * self.difficulty):
+        self.nonce += 1
+        self.hash = self.calcHash()
+
+```
+
+Foi tmabém adicionado uma regra de validação para os endereços e um sistema de busca simples que mostra uma relação de todas as transações para um endereço que for passado.
+
+```
+  # Vai validar os endereços
+  def validityAddress(self, address):
+    padrao_address = r"^00.*[a-zA-Z0-9]{5}$"
+    if re.match(padrao_address, address):
+      return True
+    else:
+      return False
+
+
+# Vai buscar as transações do endereço
+  def searchDataUser(self, user):
+  searchTransactions = []
+
+  for block in self.chain:
+    if block.index == 0:
+      continue
+    for address in block.data: 
+        if address['transmissor'] == user or address['receptor'] == user:
+            searchTransactions.append(address)
+  
+  return searchTransactions
 ```
