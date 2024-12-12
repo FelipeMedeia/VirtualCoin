@@ -48,20 +48,22 @@ Para os blocos temos os seguintes atributos:
   self.beforeHash = beforeHash
   self.data = data
   self.timestamp = timestamp or time.time()
+  self.nonce = 0
+  self.difficulty = difficulty
 ```
 A função hash irá pegar o valor do index, o hash_anterior(beforeHash), os dados(data) referentes as transações e o tempo(timestamp), assim usando a *haslib* irá gerar um hash pra cada bloco:
 
 ```
  def calcHash(self):
-  block_data = f"{self.index}{self.beforeHash}{self.data}{self.timestamp}"
-  return hashlib.sha256(block_data.encode()).hexdigest() 
+  block_data = f"{self.index}{self.beforeHash}{self.data}{self.timestamp}{self.nonce}"
+  return hashlib.sha256(block_data.encode('utf-8')).hexdigest() 
 ```
 Essa última apenas está transformando em String:
 
 ```
- def calcHash(self):
-   def __str__(self):
-  return "Index-{}\nHASH-{}\nPREVIOUS HASH-{}\nDATA-{}\nTIME-{}\n".format(self.index, self.hash, self.beforeHash, self.data, self.timestamp)
+ def __str__(self):
+  return f"Index-{self.index}\nHASH-{self.hash}\nPREVIOUS HASH-{self.beforeHash}\nDATA-{self.data}\nTIME-{self.timestamp}\nNONCE-{self.nonce}"
+
 ```
 
 E a classe Bockchain para a montagem da Blockchain simples.
@@ -133,19 +135,25 @@ Para a construção dos blocos, o genesis é o primeiro bloco da cadeia e usando
     return block
 
     def validityBlockChain(self, block):
-      for i in range(1, len(self.chain)):
+      for i in range(0, len(self.chain)):
         if block.beforeHash != self.latestBlock().hash:
           return False
+        if block.hash != block.calcHash():
+          return False
         if self.latestBlock().calcHash() != self.latestBlock().hash:
+          print(f"Erro de hash no bloco {i}")
           return False
         if block.timestamp < self.latestBlock().timestamp:
           return False
-      
-      return True
+        if not block.data:
+          return False
+
+
+  return True
 
 ```
 
-A função newdata vai adicionar os dados da transação no bloco, recebendo quem maandou, quem vai receber e a quantidade. A função latestBlock vai pegar o último bloca da corrente e a makeBlock vai receber os dados para montar o bloco, passando todos os parametros finais.
+A função newdata vai adicionar os dados da transação no bloco, recebendo quem maandou, quem vai receber e a quantidade. A função latestBlock vai pegar o último bloco da corrente e a makeBlock vai receber os dados para montar o bloco, passando todos os parametros finais.
 
 ```
 def newData(self, transmisor, receptor, quantity):
@@ -163,4 +171,42 @@ def newData(self, transmisor, receptor, quantity):
                 blockData.data['data'],
                 blockData.timestamp['timestamp'])
 
+```
+
+## Novas modificações
+
+Para essa nova implementação foi planejado acrescentar um sistema de mineração de blocos semelhante ao PoW, com isso foi adicionado o NONCE e a dificuldade. Também foi alterado a criação do hash, passando o nonce como um atributo.
+
+```
+def miner_block(self):
+    while not self.hash.startswith('0' * self.difficulty):
+        self.nonce += 1
+        self.hash = self.calcHash()
+
+```
+
+Foi tmabém adicionado uma regra de validação para os endereços e um sistema de busca simples que mostra uma relação de todas as transações para um endereço que for passado.
+
+```
+  # Vai validar os endereços
+  def validityAddress(self, address):
+    padrao_address = r"^00.*[a-zA-Z0-9]{5}$"
+    if re.match(padrao_address, address):
+      return True
+    else:
+      return False
+
+
+# Vai buscar as transações do endereço
+  def searchDataUser(self, user):
+  searchTransactions = []
+
+  for block in self.chain:
+    if block.index == 0:
+      continue
+    for address in block.data: 
+        if address['transmissor'] == user or address['receptor'] == user:
+            searchTransactions.append(address)
+  
+  return searchTransactions
 ```
