@@ -43,6 +43,7 @@ class BlockChain:
   
   self.chain = []
   self.current_data = []
+  self.transaction_history = []
   self.difficulty = 4
   self.genesisBlock()
 
@@ -53,18 +54,18 @@ class BlockChain:
     block = Block(index=len(self.chain), hash='', beforeHash=beforeHash, data=data)
     block.hash = block.calcHash()
 
-    if self.validityBlockChain(block):
-        block.miner_block()
-        self.chain.append(block)
-        print(f"Bloco {block.index} adicionado com sucesso.\n")
+    block.mine_block()
+
+    if self.is_valid_block(block):
+      self.chain.append(block)
+      print(f"Bloco {block.index} adicionado com sucesso. Recompensa de {block.reward} Digcoins.\n")
     else:
         print(f"Existe algum empedimento para inserir o bloco {block.index} na BlockChain!")
     
     self.current_data = []
-
     return block
 
- def validityBlockChain(self, block):
+ def is_valid_block(self, block):
   for i in range(0, len(self.chain)):
     if block.beforeHash != self.latestBlock().hash:
       return False
@@ -77,44 +78,115 @@ class BlockChain:
       return False
     if not block.data:
       return False
-
-
   return True
  
 
- def validityAddress(self, address):
-    padrao_address = r"^00.*[a-zA-Z0-9]{5}$"
-    if re.match(padrao_address, address):
-      return True
-    else:
-      return False
+ def is_valid_address(self, address):
+    address_pattern = r"[00]{2}.*[a-z]{32}$"
+    return bool (re.match(address_pattern, address))
 
 
- def newData(self, transmissor, receptor, quantity):
-  if not self.validityAddress(transmissor):
+ def newData(self, transmissor, receptor, quantity, wallet=None):
+  if not self.is_valid_address(transmissor):
     print(f"Erro: O endereço do transmissor {transmissor} não é válido!")
     return 
-  if not self.validityAddress(receptor):
+  if not self.is_valid_address(receptor):
     print(f"Erro: O endereço do receptor {receptor} não é válido!")
     return
-  self.current_data.append({
-    "transmissor": transmissor,
-    "receptor": receptor,
-    "quantity": quantity
- })
 
+  wallet = self.open_wallet(transmissor, receptor, quantity, wallet or {})
+  
+  if wallet:
+    
+    transaction = {
+      'transmissor': transmissor,
+      'receptor': receptor,
+      'quantity': quantity,
+      'signature': '',
+      'saldo': wallet,
+      'cost': 0.0129476
+    }
+    
+    signed_transaction, public_key = self.sign_transaction(transaction)
+    if self.validate_transaction(public_key, signed_transaction):
+      self.current_data.append(signed_transaction)
+
+  return self.current_data
+
+
+ def open_wallet(self, owner, receptor, quantity, wallet, cost=0.0129476):
+
+  if not wallet.get('owner'):
+    wallet['owner'] = owner
+
+  if wallet.get('digcoin') is None:
+    wallet['digcoin'] = 0.0
+
+  if wallet.get('digcoin') == '':
+    wallet['digcoin'] = self.get_wallet_balance(owner)
+
+  for block in self.chain[1:]:
+    for dado in block.data:
+      if dado['transmissor'] == wallet['owner']:
+        wallet['digcoin'] -= dado['quantity']
+
+      if dado['receptor'] == wallet['owner']:
+        wallet['digcoin'] += dado['quantity']
+
+  if wallet['digcoin'] < (quantity + cost):
+    print(f'Error: Valor de {wallet['digcoin']} insuficiente!')
+    return False
+  
+  wallet['digcoin'] -= (quantity + cost)
+  return wallet['digcoin']
+
+
+ def sign_transaction(self, transaction):
+
+  transaction_data = f"{transaction['transmissor']}{transaction['receptor']}{transaction['quantity']}".encode() 
+  message_hash = hashlib.sha256(transaction_data).digest()
+
+  sk = SigningKey.generate(curve=SECP256k1)
+  signature = sk.sign(message_hash, sigencode=sigencode_der)
+  public_key = sk.get_verifying_key().to_string().hex()
+
+  return {** transaction, 'signature': signature.hex()}, public_key
+
+
+ def validate_transaction(self, public_key, transaction):
+
+  try:
+    tx_data = f'{transaction['transmissor']}{transaction['receptor']}{transaction['quantity']}'.encode()
+    message_hash = hashlib.sha256(tx_data).digest()
+
+    vk = VerifyingKey.from_string(bytes.fromhex(public_key), curve=SECP256k1)
+    vk.verify(bytes.fromhex(transaction['signature']), message_hash, sigdecode=sigdecode_der)
+    print("Assinatura válida!") 
+    return True
+  except Exception as e:
+    print("Assinatura inválida! Erro: {e}")
+  return False
 
  def searchDataUser(self, user):
-  searchTransactions = []
+  user_transactions = []
 
-  for block in self.chain:
-    if block.index == 0:
-      continue
-    for address in block.data: 
-        if address['transmissor'] == user or address['receptor'] == user:
-            searchTransactions.append(address)
-  
-  return searchTransactions
+  for block in self.chain[1:]:
+    for transaction in block.data:
+        if transaction['transmissor'] == user or transaction['receptor'] == user: 
+            user_transactions.append(transaction)
+  return user_transactions
+
+ def get_wallet_balance(self, user):
+  balance = 0
+  for block in self.chain[1:]:
+    for transaction in block.data:
+      if transaction['transmissor'] == user:
+        balance -= (transaction['quantity']+transaction['cost'])
+      if transaction['receptor'] == user:
+        balance += transaction['quantity']
+
+  return max(balance, 0)
+
 
  def latestBlock(self):
   return self.chain[-1]
@@ -125,7 +197,8 @@ class BlockChain:
               blockData.hash['hash'],
               blockData.beforeHash['beforeHash'],
               blockData.data['data'],
-              blockData.timestamp['timestamp'])
+              blockData.timestamp['timestamp'],
+              blockData.resource['resource'])
 
 ###############################################################
 
