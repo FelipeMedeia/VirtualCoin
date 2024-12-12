@@ -214,19 +214,44 @@ if __name__ == "__main__":
 
     lastBlock = blockchain.latestBlock()
 
-    blockchain.newData(transmissor="00Userfs000", receptor="00Kingsd00000", quantity=15)
-    blockchain.newData(transmissor="00Userkf1000", receptor="00Queenjf00000", quantity=20)
-    blockchain.newData(transmissor="00User2000", receptor="00Magic00000", quantity=11)
+    blockchain.newData(transmissor="00mnbvmnbbcvxdsfarweqthygdferwkijh",
+     receptor="00lpoimnbbcvxdsfarweqthygdferwkijh",
+      quantity=20, wallet={'owner': '', 'digcoin': 50})
+
+    blockchain.newData(transmissor="00mkloiuhbcvxdsfarweqthygdferwkijh",
+     receptor="00polouibbcmnbvcarweqthygdferwkijh", quantity=90, 
+     wallet={'owner': '', 'digcoin': 80})
+
+    blockchain.newData(transmissor="00mnbvmnbbcvxdsfarweqthygdnbhgytrf",
+     receptor="00mkloiuhbcvxdsfarweqthygdferwkijh", quantity=11,
+      wallet={'owner': '', 'digcoin': 15})
 
     lastHash = lastBlock.calcHash()
     block = blockchain.constructBlock(lastHash, blockchain.current_data)
 
-    #Bloco com erro nos endereços
     lastBlock = blockchain.latestBlock()
 
-    blockchain.newData(transmissor="0User000", receptor="00King00000", quantity=10)
-    blockchain.newData(transmissor="00User1000", receptor="0Queen00000", quantity=25)
-    blockchain.newData(transmissor="00Magic00000", receptor="00User2000", quantity=13)
+    blockchain.newData(transmissor="0User000", receptor="00King00000", 
+    quantity=10, wallet={'owner': '', 'digcoin': 50})
+
+    blockchain.newData(transmissor="00polouibbcmnbvcarweqthygdferwkijh", 
+    receptor="00mnbvmnbbcvxdsfarweqthygdferwkijh", 
+    quantity=25, wallet={'owner': '', 'digcoin': 45})
+
+
+    blockchain.newData(transmissor="00lpoimnbbcvxdsfarweqthygdferwkijh", 
+    receptor="00mkloiuhbcvxdsfarweqthygdferwkijh", 
+    quantity=13, wallet={'owner': '', 'digcoin': 60})
+
+
+    lastHash = lastBlock.calcHash()
+    block = blockchain.constructBlock(lastHash, blockchain.current_data)
+
+    lastBlock = blockchain.latestBlock()
+
+    blockchain.newData(transmissor="00mkloiuhbcvxdsfarweqthygdferwkijh", 
+    receptor="00polouibbcmnbvcarweqthygdferwkijh", 
+    quantity=10, wallet={'owner': '', 'digcoin': ''})
 
     lastHash = lastBlock.calcHash()
     block = blockchain.constructBlock(lastHash, blockchain.current_data)
@@ -235,16 +260,18 @@ if __name__ == "__main__":
      print(block,'\n')
 
 
-
     # Modifique o endereço para ter novas analises
-    user = "00User2000"
+    user = "00mkloiuhbcvxdsfarweqthygdferwkijh"
     transactions = blockchain.searchDataUser(user)
+
+    wallet = blockchain.get_wallet_balance(user)
+    print(f"Owner: {user}, Saldo: {wallet} DigCoins.")
 
 
     # Exibindo as transações encontradas
     print(f"\nTransações encontradas para o usuário {user}:")
     for address in transactions:
-        print(f"Transmissor: {address['transmissor']}, Receptor: {address['receptor']}, Quantidade: {address['quantity']}")
+        print(f"Transmissor: {address['transmissor']}, Receptor: {address['receptor']}, Enviados: {address['quantity']}.")
 
     print("\n##----------------Terminando teste com DigCoin------------------##")
     print("##--------------------------------------------------------------##")
