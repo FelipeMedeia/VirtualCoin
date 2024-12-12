@@ -1,6 +1,9 @@
 import hashlib
 import time
 import re
+from ecdsa import SECP256k1, SigningKey, VerifyingKey
+from ecdsa.util import sigencode_der, sigdecode_der
+
 
 class Block:
  
@@ -13,18 +16,24 @@ class Block:
   self.timestamp = timestamp or time.time()
   self.nonce = 0
   self.difficulty = difficulty
+  self.reward = 0
 
  def calcHash(self):
   block_data = f"{self.index}{self.beforeHash}{self.data}{self.timestamp}{self.nonce}"
   return hashlib.sha256(block_data.encode('utf-8')).hexdigest()
  
- def miner_block(self):
+ def mine_block(self):
     while not self.hash.startswith('0' * self.difficulty):
         self.nonce += 1
         self.hash = self.calcHash()
+    self.reward = 100 if self.index == 0 else self.reward +25
+
+    for transaction in self.data:
+      if not self.index == 0:
+        self.reward += transaction.get('cost', 0)
  
  def __str__(self):
-  return f"Index-{self.index}\nHASH-{self.hash}\nPREVIOUS HASH-{self.beforeHash}\nDATA-{self.data}\nTIME-{self.timestamp}\nNONCE-{self.nonce}"
+  return f"Index-{self.index}\nHASH-{self.hash}\nPREVIOUS HASH-{self.beforeHash}\nDATA-{self.data}\nTIME-{self.timestamp}\nNONCE-{self.nonce}\nResource-{self.reward}"
 
 ####################################################################
 
