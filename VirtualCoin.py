@@ -75,7 +75,7 @@ class BlockChain:
 
  def propagate_block(self, block):
 
-  print(f"Node {block.index} propagando bloco...")
+  print(f"Node {block.index} propagando bloco...","\n")
 
   for node in Node.instances:
     if node.blockchain != self:
@@ -236,7 +236,7 @@ class Node:
     Node.instances.append(self)
 
   def resolve_fork(self, other_node):
-      print(f"Node {self.id} resolvendo fork...")
+      print(f"Node {self.id} resolvendo fork...","\n")
 
       if len(other_node.blockchain.chain) > len(self.blockchain.chain):
           print(f"Node {self.id} adotando cadeia mais longa do Node {other_node.id}.")
@@ -246,7 +246,7 @@ class Node:
           self.synchronize_transactions(other_node)
 
   def synchronize_transactions(self, other_node):
-          print(f"Node {self.id} sincronizando transações com Node {other_node.id}...")
+          print(f"Node {self.id} sincronizando transações com Node {other_node.id}...","\n")
           for block in other_node.blockchain.chain:
               for transaction in block.data:
                   if transaction not in self.blockchain.transaction_history:
@@ -359,15 +359,15 @@ if __name__ == "__main__":
     node1.resolve_fork(node2)
     
 
-    for block in blockchain1.chain:
+    for block in blockchain.chain:
       print(block, '\n')
     
 
     # Modifique o endereço para ter novas analises
     user = "00lpoimnbbcvxdsfarweqthygdferwkijh"
-    transactions = blockchain1.searchDataUser(user)
+    transactions = blockchain.searchDataUser(user)
 
-    wallet = blockchain1.get_wallet_balance(user)
+    wallet = blockchain.get_wallet_balance(user)
     print(f"Owner: {user}, Saldo: {wallet} DigCoins.")
 
 
