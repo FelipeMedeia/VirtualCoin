@@ -25,19 +25,8 @@ Ou pode entrar no arquivo VirtualCoin e no canto superior direito aparecerá um 
 
 A classe de bloco para ajudar na contrução dos blocos...
 
-Para os blocos temos os seguintes atributos:
+Para a contrução do bloco foi seguido um contexto de que o ele possuiria um index, um valor de hash, o hash do bloco anterior, os dados referente as transações, o momento da criação, nonce que será abordado na simulação de mineração juntamente com a dificuldade e por ultimo foi colocado o atributo referente a recompensa. Com isso a classe do bloco é composta pelo seu construtor, por uma função que irá calcular o hash, por uma que irá simular a mineração e uma que irá transformar o retorno em string.
 
-```
-class Block:
- def __init__():
-  self.index = index
-  self.hash = hash
-  self.beforeHash = beforeHash
-  self.data = data
-  self.timestamp = timestamp or time.time()
-  self.nonce = 0
-  self.difficulty = difficulty
-```
 A função hash irá pegar o valor do index, o hash_anterior(beforeHash), os dados(data) referentes as transações e o tempo(timestamp), assim usando a *haslib* irá gerar um hash pra cada bloco e a mine_block irá simular uma mineração desses blocos, para isso ela foi reescrita para que além de usar um sistema parecido com o PoW, com uma dificuldade e nonce, foi adicionado uma recompensa para cada bloco de 25 digcoins + a taxa, que é o valor que custa para cada transação (nesse caso, levando em consideração que cada bloco tem até 3 transações e a taxa fosse de 0.01 o bloco no final teria uma reward de 25 + 3*cost).
 
 ```
@@ -50,10 +39,11 @@ A função hash irá pegar o valor do index, o hash_anterior(beforeHash), os dad
     
     self.nonce += 1
     self.hash = self.calcHash()
+
   self.reward = 100 if self.index == 0 else self.reward + 25
 
-  for transaction in self.data:
-    if not self.index == 0:
+  if self.index !=0:
+    for transaction in self.data:
       self.reward += transaction.get('cost', 0)
 ```
 Essa a seguir apenas está retornando em String:
@@ -66,74 +56,13 @@ Essa a seguir apenas está retornando em String:
 
 E a classe Bockchain para a montagem da Blockchain simples.
 
-Segue o mesmo próposito de iniciar a classe, nessa a chain vai ser a lista encadeada dos blocos, os dados atuais que serão adicionados no bloco e o bloco genesis, que é o primeiro bloco da cadeia.
-
-```
-class BlockChain:
-
- self.chain = []
-  self.current_data = []
-  self.transaction_history = []
-  self.difficulty = 4
-  self.genesisBlock()
-
-```
-Para a construção dos blocos, o genesis é o primeiro bloco da cadeia e usando a função construct que vai receber os dados do hash do bloco anterior e os dados. Antes de adicionar o bloco vai validar verificando os hashs e o tempo, se tudo estiver correto o bloco será adicionado, para isso as validações foram adicinadas, e para simulação de propagação, foi implementado a função propagate_block, que irá compartilhar com todos os outros nós quando um novo bloco for adicionado.
+Segue o mesmo próposito de iniciar a classe, nessa a chain vai ser a lista encadeada dos blocos, os dados atuais que serão adicionados no bloco, e o bloco genesis, que é o primeiro bloco da cadeia.
 
 
-```
- def genesisBlock(self):
-   self.constructBlock(beforeHash='0', data='Genesis Block!')
+Para a construção dos blocos, o genesis é o primeiro bloco da cadeia e usando a função construct que vai receber os dados do hash do bloco anterior e os dados. Antes de adicionar o bloco vai validar verificando os critérios para validação, se tudo estiver correto o bloco será adicionado, para isso as validações foram adicionadas, e para simulação de propagação, foi implementado a função propagate_block, que irá compartilhar com todos os outros nós quando um novo bloco for adicionado, nesse exemplo existe a propagação dos blocos para dois nós.
 
- def constructBlock(self, beforeHash, data):
-    block = Block(index=len(self.chain), hash='', beforeHash=beforeHash, data=data)
-    block.hash = block.calcHash()
-    
-    block.mine_block()
 
-    if self.is_valid_block(block):
-      self.chain.append(block)
-      print(f"Bloco {block.index} adicionado com sucesso. Recompensa de {block.reward} Digcoins.\n")
-
-      self.propagate_block(block)
-    else:
-        print(f"Existe algum empedimento para inserir o bloco {block.index} na BlockChain!")
-    
-    self.current_data = []
-    return block
-
- def propagate_block(self, block):
-
-  print(f"Node {block.index} propagando bloco...")
-
-  for node in Node.instances:
-    if node.blockchain != self:
-      node.blockchain.constructBlock(block.beforeHash, block.data)
-
- def is_valid_block(self, block):
-  for i in range(0, len(self.chain)):
-    if block.index != len(self.chain):
-      return False
-    if block.beforeHash != self.latestBlock().hash:
-      return False
-    if block.hash != block.calcHash():
-      return False
-    if self.latestBlock().calcHash() != self.latestBlock().hash:
-      print(f"Erro de hash no bloco {i}")
-      return False
-    if block.timestamp < self.latestBlock().timestamp:
-      return False
-    if not block.data:
-      return False
-  return True
- 
-
- def is_valid_address(self, address):
-    address_pattern = r"[00]{2}.*[a-z]{32}$"
-    return bool (re.match(address_pattern, address))
-
-```
-Aqui temos a função que irá analisar os blocos, se os dados deles para validaçãoe são consistentes e ao final aqui temos a função que valida os endereços, assim ela estará montando um padrão para os endereços que são aceitos nessa blockchain.
+Seguindo teremos a função ` def is_valid_block(self, block) ` que irá analisar os blocos, se os dados para validação e se são consistentes, no final tem a função que valida os endereços ` def is_valid_address(self, address) `, assim ela estará montando um padrão para os endereços que são aceitos nessa blockchain.
 
 A função newdata vai adicionar os dados da transação no bloco, recebendo quem mandou, quem vai receber e a quantidade. A função latestBlock vai pegar o último bloco da corrente e a makeBlock vai receber os dados para montar o bloco, passando todos os parametros finais.
 Como uma adição agora em codigo final temos também a assinatura, algo similar à uma carteira e o custo que será debitado para cada transação relalizada pelo endereço em questão. E a função que valida as transações, que esta logo a seguir é onde, caso os dados estão corretos e 'válidos', será a transação então assinada, permitindo assim avaçar para sua inclusão ao bloco.
@@ -147,7 +76,7 @@ def newData(self, transmissor, receptor, quantity, wallet=None):
     print(f"Erro: O endereço do receptor {receptor} não é válido!")
     return
 
-  wallet = self.open_wallet(transmissor, receptor, quantity, wallet or {})
+  wallet = self.open_wallet(transmissor, quantity)
   if wallet:
     
     transaction = {
@@ -155,7 +84,6 @@ def newData(self, transmissor, receptor, quantity, wallet=None):
       'receptor': receptor,
       'quantity': quantity,
       'signature': '',
-      'saldo': wallet,
       'cost': 0.0129476
     }
     
@@ -204,26 +132,29 @@ Foi também reorganizada a busca simples que mostra uma relação de todas as tr
 ```
 # Vai buscar as transações do endereço
    def searchDataUser(self, user):
-  user_transactions = []
+    user_transactions = []
 
-  for block in self.chain[1:]:
-    for transaction in block.data:
-        if transaction['transmissor'] == user or transaction['receptor'] == user: 
-            user_transactions.append(transaction)
-  return user_transactions
-
-
- def get_wallet_balance(self, user):
-  balance = 0
-  for block in self.chain[1:]:
-    for transaction in block.data:
-      if transaction['transmissor'] == user:
-        balance = (transaction['saldo']+transaction['cost']+transaction['quantity'])
-        balance -= (transaction['quantity']+transaction['cost'])
-      if transaction['receptor'] == user:
-        balance += transaction['quantity']
+    for block in self.chain[1:]:
+      for transaction in block.data:
+          if transaction['transmissor'] == user or transaction['receptor'] == user: 
+              user_transactions.append(transaction)
+    return user_transactions
 
 
+  def get_wallet_balance(self, user):
+    for transaction in self.transaction_history:
+      for dado in self.chain[1:]:
+        for tx in dado.data:
+          if transaction['owner'] == user and tx['transmissor'] == user:
+            transaction['digcoin'] -= (tx['cost']+tx['quantity'])
+
+          if tx['receptor'] == user and transaction['owner'] == user:
+            transaction['digcoin'] += (tx['cost']+tx['quantity'])
+
+
+    return max(round(transaction['digcoin'],2), 0)
+
+E por fim a class Node, que é basicamente a responsável pela propagação da blockchain e pelo tratamento de fork, ou seja, quando tiverem duas blockchains identicas, a com a cadeia maior prevalecerá.
 
   class Node:
   instances = []
@@ -250,4 +181,3 @@ Foi também reorganizada a busca simples que mostra uma relação de todas as tr
                   if transaction not in self.blockchain.transaction_history:
                       self.blockchain.transaction_history.append(transaction)
 ```
-E por fim a class Node, que é basicamente a responsável pela propagação da blockchain e pelo tratamento de fork, ou seja, quando tiverem duas blockchains identicas, a com a cadeia maior prevalecerá.
