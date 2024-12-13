@@ -194,9 +194,10 @@ class BlockChain:
 
   for block in self.chain[1:]:
     for transaction in block.data:
-        if transaction['transmissor'] == user or transaction['receptor'] == user: 
-            user_transactions.append(transaction)
+      if transaction['transmissor'] == user or transaction['receptor'] == user: 
+        user_transactions.append(transaction)
   return user_transactions
+
 
  def get_wallet_balance(self, user):
   balance = 0
