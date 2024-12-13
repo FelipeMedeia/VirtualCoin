@@ -67,63 +67,6 @@ Seguindo teremos a função ` def is_valid_block(self, block) ` que irá analisa
 A função newdata vai adicionar os dados da transação no bloco, recebendo quem mandou, quem vai receber e a quantidade. A função latestBlock vai pegar o último bloco da corrente e a makeBlock vai receber os dados para montar o bloco, passando todos os parametros finais.
 Como uma adição agora em codigo final temos também a assinatura, algo similar à uma carteira e o custo que será debitado para cada transação relalizada pelo endereço em questão. E a função que valida as transações, que esta logo a seguir é onde, caso os dados estão corretos e 'válidos', será a transação então assinada, permitindo assim avaçar para sua inclusão ao bloco.
 
-```
-def newData(self, transmissor, receptor, quantity, wallet=None):
-  if not self.is_valid_address(transmissor):
-    print(f"Erro: O endereço do transmissor {transmissor} não é válido!")
-    return 
-  if not self.is_valid_address(receptor):
-    print(f"Erro: O endereço do receptor {receptor} não é válido!")
-    return
-
-  wallet = self.open_wallet(transmissor, quantity)
-  if wallet:
-    
-    transaction = {
-      'transmissor': transmissor,
-      'receptor': receptor,
-      'quantity': quantity,
-      'signature': '',
-      'cost': 0.0129476
-    }
-    
-    signed_transaction, public_key = self.sign_transaction(transaction)
-    if self.validate_transaction(public_key, signed_transaction):
-      self.current_data.append(signed_transaction)
-
-  return self.current_data
-
-
- def validate_transaction(self, public_key, transaction):
-
-  try:
-    tx_data = f"{transaction['transmissor']}{transaction['receptor']}{transaction['quantity']}".encode()
-    message_hash = hashlib.sha256(tx_data).digest()
-
-    vk = VerifyingKey.from_string(bytes.fromhex(public_key), curve=SECP256k1)
-    vk.verify(bytes.fromhex(transaction['signature']), message_hash, sigdecode=sigdecode_der)
-    print("Assinatura válida!") 
-    return True
-  except Exception as e:
-    print(f"Assinatura inválida! Erro: {e}")
-  return False
-
-
- def latestBlock(self):
-  return self.chain[-1]
-
-
- def makeBlock(blockData):
-  return Block(
-        index=blockData.index,
-        hash=blockData.hash,
-        beforeHash=blockData.beforeHash,
-        data=blockData.data,
-        timestamp=blockData.timestamp,
-        difficulty=blockData.difficulty
-    )
-
-```
 
 ## Outras modificações
 
@@ -154,7 +97,7 @@ Foi também reorganizada a busca simples que mostra uma relação de todas as tr
 
     return max(round(transaction['digcoin'],2), 0)
 
-E por fim a class Node, que é basicamente a responsável pela propagação da blockchain e pelo tratamento de fork, ou seja, quando tiverem duas blockchains identicas, a com a cadeia maior prevalecerá.
+E por fim a class Node, que é basicamente a responsável pela propagação da blockchain e pelo tratamento de fork, ou seja, quando tiverem duas blockchains identicas, a com a cadeia maior prevalecerá, para isso também a função irá sincronixar os dados.
 
   class Node:
   instances = []
