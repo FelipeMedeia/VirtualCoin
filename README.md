@@ -72,8 +72,10 @@ Como uma adição agora em codigo final temos também a assinatura, algo similar
 
 Foi também reorganizada a busca simples que mostra uma relação de todas as transações para um endereço que for passado. E outra que mostra a carteira, seguindo um passo só, no código ao escolher o user=endereço para busca, ambas as funções usarão o mesmo dado para trazer uma resposta.
 
-```
+
 # Vai buscar as transações do endereço
+
+  ```
    def searchDataUser(self, user):
     user_transactions = []
 
@@ -96,9 +98,12 @@ Foi também reorganizada a busca simples que mostra uma relação de todas as tr
 
 
     return max(round(transaction['digcoin'],2), 0)
+```
 
 E por fim a class Node, que é basicamente a responsável pela propagação da blockchain e pelo tratamento de fork, ou seja, quando tiverem duas blockchains identicas, a com a cadeia maior prevalecerá, para isso também a função irá sincronixar os dados.
 
+
+  ```
   class Node:
   instances = []
 
