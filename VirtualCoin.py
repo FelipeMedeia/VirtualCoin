@@ -13,29 +13,34 @@ class Block:
   self.hash = hash
   self.beforeHash = beforeHash
   self.data = data
-  self.timestamp = timestamp or time.time()
-  self.nonce = 0
+  if self.index == 0:
+    self.timestamp = 1734037017
+    self.nonce = 100
+  else:
+    self.timestamp = timestamp or time.time()
+    self.nonce = 0
   self.difficulty = difficulty
   self.reward = 0
 
  def calcHash(self):
-  block_data = f"{self.index}{self.beforeHash}{self.data}{self.timestamp}{self.nonce}"
-  return hashlib.sha256(block_data.encode('utf-8')).hexdigest()
+    block_data = f"{self.index}{self.beforeHash}{self.data}{self.timestamp}{self.nonce}"
+    return hashlib.sha256(block_data.encode('utf-8')).hexdigest()
  
  def mine_block(self):
-    while not self.hash.startswith('0' * self.difficulty):
-        self.nonce += 1
-        self.hash = self.calcHash()
-    self.reward = 100 if self.index == 0 else self.reward +25
+  while not self.hash.startswith('0' * self.difficulty):
+    
+    self.nonce += 1
+    self.hash = self.calcHash()
+  self.reward = 100 if self.index == 0 else self.reward + 25
 
-    for transaction in self.data:
-      if not self.index == 0:
-        self.reward += transaction.get('cost', 0)
+  for transaction in self.data:
+    if not self.index == 0:
+      self.reward += transaction.get('cost', 0)
  
  def __str__(self):
   return f"Index-{self.index}\nHASH-{self.hash}\nPREVIOUS HASH-{self.beforeHash}\nDATA-{self.data}\nTIME-{self.timestamp}\nNONCE-{self.nonce}\nResource-{self.reward}"
 
-####################################################################
+#######################################################################
 
 class BlockChain:
  
@@ -54,19 +59,32 @@ class BlockChain:
     block = Block(index=len(self.chain), hash='', beforeHash=beforeHash, data=data)
     block.hash = block.calcHash()
 
+    
     block.mine_block()
 
     if self.is_valid_block(block):
       self.chain.append(block)
       print(f"Bloco {block.index} adicionado com sucesso. Recompensa de {block.reward} Digcoins.\n")
+
+      self.propagate_block(block)
     else:
         print(f"Existe algum empedimento para inserir o bloco {block.index} na BlockChain!")
     
     self.current_data = []
     return block
 
+ def propagate_block(self, block):
+
+  print(f"Node {block.index} propagando bloco...")
+
+  for node in Node.instances:
+    if node.blockchain != self:
+      node.blockchain.constructBlock(block.beforeHash, block.data)
+
  def is_valid_block(self, block):
   for i in range(0, len(self.chain)):
+    if block.index != len(self.chain):
+      return False
     if block.beforeHash != self.latestBlock().hash:
       return False
     if block.hash != block.calcHash():
@@ -116,28 +134,31 @@ class BlockChain:
 
  def open_wallet(self, owner, receptor, quantity, wallet, cost=0.0129476):
 
+  if not isinstance(wallet, dict):
+    print(f"Erro: O parametro wallet recebeu {type(wallet)}")
+    return False
+
   if not wallet.get('owner'):
     wallet['owner'] = owner
 
-  if wallet.get('digcoin') is None:
-    wallet['digcoin'] = 0.0
-
-  if wallet.get('digcoin') == '':
+  if wallet.get('digcoin') is None or wallet.get('digcoin') == '':
     wallet['digcoin'] = self.get_wallet_balance(owner)
-
   for block in self.chain[1:]:
     for dado in block.data:
+      
       if dado['transmissor'] == wallet['owner']:
-        wallet['digcoin'] -= dado['quantity']
+        wallet['digcoin'] -= (dado['quantity'] + dado['cost'])
 
       if dado['receptor'] == wallet['owner']:
         wallet['digcoin'] += dado['quantity']
 
   if wallet['digcoin'] < (quantity + cost):
-    print(f'Error: Valor de {wallet['digcoin']} insuficiente!')
+
+    print(f"Error: Valor de {wallet['digcoin']} insuficiente!")
     return False
   
   wallet['digcoin'] -= (quantity + cost)
+  wallet['digcoin'] = round(wallet['digcoin'], 2)
   return wallet['digcoin']
 
 
@@ -156,7 +177,7 @@ class BlockChain:
  def validate_transaction(self, public_key, transaction):
 
   try:
-    tx_data = f'{transaction['transmissor']}{transaction['receptor']}{transaction['quantity']}'.encode()
+    tx_data = f"{transaction['transmissor']}{transaction['receptor']}{transaction['quantity']}".encode()
     message_hash = hashlib.sha256(tx_data).digest()
 
     vk = VerifyingKey.from_string(bytes.fromhex(public_key), curve=SECP256k1)
@@ -164,8 +185,9 @@ class BlockChain:
     print("Assinatura válida!") 
     return True
   except Exception as e:
-    print("Assinatura inválida! Erro: {e}")
+    print(f"Assinatura inválida! Erro: {e}")
   return False
+
 
  def searchDataUser(self, user):
   user_transactions = []
@@ -181,11 +203,12 @@ class BlockChain:
   for block in self.chain[1:]:
     for transaction in block.data:
       if transaction['transmissor'] == user:
+        balance = (transaction['saldo']+transaction['cost']+transaction['quantity'])
         balance -= (transaction['quantity']+transaction['cost'])
       if transaction['receptor'] == user:
         balance += transaction['quantity']
 
-  return max(balance, 0)
+  return max(round(balance,2), 0)
 
 
  def latestBlock(self):
@@ -193,38 +216,68 @@ class BlockChain:
 
 
  def makeBlock(blockData):
-  return Block(blockData.index['index'],
-              blockData.hash['hash'],
-              blockData.beforeHash['beforeHash'],
-              blockData.data['data'],
-              blockData.timestamp['timestamp'],
-              blockData.resource['resource'])
+  return Block(
+        index=blockData.index,
+        hash=blockData.hash,
+        beforeHash=blockData.beforeHash,
+        data=blockData.data,
+        timestamp=blockData.timestamp,
+        difficulty=blockData.difficulty
+    )
 
-###############################################################
 
+class Node:
+  instances = []
 
+  def __init__(self, id, blockchain):
+    self.id = id
+    self.blockchain = blockchain
+    Node.instances.append(self)
+
+  def resolve_fork(self, other_node):
+      print(f"Node {self.id} resolvendo fork...")
+
+      if len(other_node.blockchain.chain) > len(self.blockchain.chain):
+          print(f"Node {self.id} adotando cadeia mais longa do Node {other_node.id}.")
+          self.blockchain.chain = other_node.blockchain.chain
+          self.blockchain.current_data = other_node.blockchain.current_data
+
+          self.synchronize_transactions(other_node)
+
+  def synchronize_transactions(self, other_node):
+          print(f"Node {self.id} sincronizando transações com Node {other_node.id}...")
+          for block in other_node.blockchain.chain:
+              for transaction in block.data:
+                  if transaction not in self.blockchain.transaction_history:
+                      self.blockchain.transaction_history.append(transaction)
+
+ 
+######################################################################
 if __name__ == "__main__":
 
-    blockchain = BlockChain()
 
     print("##--------------------------------------------------------------##")
     print("##---------------------Começando o DigCoin----------------------##")
     print("")
     print("")
 
+    
+    blockchain = BlockChain()
+    blockchain1 = BlockChain()
+
     lastBlock = blockchain.latestBlock()
 
     blockchain.newData(transmissor="00mnbvmnbbcvxdsfarweqthygdferwkijh",
      receptor="00lpoimnbbcvxdsfarweqthygdferwkijh",
-      quantity=20, wallet={'owner': '', 'digcoin': 50})
+     quantity=25, wallet={'owner': '', 'digcoin': 50})
 
     blockchain.newData(transmissor="00mkloiuhbcvxdsfarweqthygdferwkijh",
-     receptor="00polouibbcmnbvcarweqthygdferwkijh", quantity=90, 
-     wallet={'owner': '', 'digcoin': 80})
+     receptor="00polouibbcmnbvcarweqthygdferwkijh",
+     quantity=90, wallet={'owner': '', 'digcoin': 80})
 
     blockchain.newData(transmissor="00mnbvmnbbcvxdsfarweqthygdnbhgytrf",
-     receptor="00mkloiuhbcvxdsfarweqthygdferwkijh", quantity=11,
-      wallet={'owner': '', 'digcoin': 15})
+     receptor="00mkloiuhbcvxdsfarweqthygdferwkijh",
+     quantity=11, wallet={'owner': '', 'digcoin': 15})
 
     lastHash = lastBlock.calcHash()
     block = blockchain.constructBlock(lastHash, blockchain.current_data)
@@ -238,33 +291,82 @@ if __name__ == "__main__":
     receptor="00mnbvmnbbcvxdsfarweqthygdferwkijh", 
     quantity=25, wallet={'owner': '', 'digcoin': 45})
 
-
     blockchain.newData(transmissor="00lpoimnbbcvxdsfarweqthygdferwkijh", 
+    receptor="00mkloiuhbcvxdsfarweqthygdferwkijh", 
+    quantity=10, wallet={'owner': '', 'digcoin': 60})
+
+
+    lastHash = lastBlock.calcHash()
+    block = blockchain.constructBlock(lastHash, blockchain.current_data)
+
+
+    lastBlock = blockchain1.latestBlock()
+
+    blockchain1.newData(transmissor="00mnbvmnbbcvxdsfarweqthygdferwkijh",
+     receptor="00lpoimnbbcvxdsfarweqthygdferwkijh",
+      quantity=25, wallet={'owner': '', 'digcoin': 50})
+
+    blockchain1.newData(transmissor="00mkloiuhbcvxdsfarweqthygdferwkijh",
+     receptor="00polouibbcmnbvcarweqthygdferwkijh",
+     quantity=90, wallet={'owner': '', 'digcoin': 80})
+
+    blockchain1.newData(transmissor="00mnbvmnbbcvxdsfarweqthygdnbhgytrf",
+     receptor="00mkloiuhbcvxdsfarweqthygdferwkijh",
+     quantity=11, wallet={'owner': '', 'digcoin': 15})
+
+    lastHash = lastBlock.calcHash()
+    block = blockchain1.constructBlock(lastHash, blockchain1.current_data)
+
+    lastBlock = blockchain1.latestBlock()
+
+    blockchain1.newData(transmissor="0User000", receptor="00King00000", 
+    quantity=10, wallet={'owner': '', 'digcoin': 50})
+
+    blockchain1.newData(transmissor="00polouibbcmnbvcarweqthygdferwkijh", 
+    receptor="00mnbvmnbbcvxdsfarweqthygdferwkijh", 
+    quantity=25, wallet={'owner': '', 'digcoin': 45})
+
+
+    blockchain1.newData(transmissor="00lpoimnbbcvxdsfarweqthygdferwkijh", 
     receptor="00mkloiuhbcvxdsfarweqthygdferwkijh", 
     quantity=13, wallet={'owner': '', 'digcoin': 60})
 
 
     lastHash = lastBlock.calcHash()
-    block = blockchain.constructBlock(lastHash, blockchain.current_data)
+    block = blockchain1.constructBlock(lastHash, blockchain1.current_data)
 
-    lastBlock = blockchain.latestBlock()
 
-    blockchain.newData(transmissor="00mkloiuhbcvxdsfarweqthygdferwkijh", 
+    lastBlock = blockchain1.latestBlock()
+
+    blockchain1.newData(transmissor="00mkloiuhbcvxdsfarweqthygdferwkijh", 
     receptor="00polouibbcmnbvcarweqthygdferwkijh", 
     quantity=10, wallet={'owner': '', 'digcoin': ''})
 
+
     lastHash = lastBlock.calcHash()
-    block = blockchain.constructBlock(lastHash, blockchain.current_data)
+    block = blockchain1.constructBlock(lastHash, blockchain1.current_data)
+
+
+    node1 = Node(id=1, blockchain=blockchain)
+    node2 = Node(id=2, blockchain=blockchain1)
 
     for block in blockchain.chain:
      print(block,'\n')
 
 
-    # Modifique o endereço para ter novas analises
-    user = "00mkloiuhbcvxdsfarweqthygdferwkijh"
-    transactions = blockchain.searchDataUser(user)
+    time.sleep(2)
+    node1.resolve_fork(node2)
+    
 
-    wallet = blockchain.get_wallet_balance(user)
+    for block in blockchain1.chain:
+      print(block, '\n')
+    
+
+    # Modifique o endereço para ter novas analises
+    user = "00lpoimnbbcvxdsfarweqthygdferwkijh"
+    transactions = blockchain1.searchDataUser(user)
+
+    wallet = blockchain1.get_wallet_balance(user)
     print(f"Owner: {user}, Saldo: {wallet} DigCoins.")
 
 
